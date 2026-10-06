@@ -1,0 +1,32 @@
+# Copy to ~/.config/claudex/config.toml, then adjust paths and order.
+# Each entry in router.providers is attempted in order after a limit, login,
+# or rate-limit failure. Claude accounts are separate CLI config directories.
+
+[router]
+providers = ["claude-work", "codex", "claude-personal"]
+reasoning_effort = "medium"
+cooldown_seconds = 900
+state_dir = "~/.local/state/claudex"
+# stream-json is right for Multica and similar Claude-compatible hosts.
+# Use plain for an adapter that sends one text prompt on stdin.
+input_protocol = "stream-json"
+# claude_bin = "/path/to/claude"
+# codex_bin = "/path/to/codex"
+
+[providers.claude-work]
+kind = "claude"
+config_dir = "~/.claude-work"
+fast_model = "sonnet"
+strong_model = "opus"
+
+[providers.codex]
+kind = "codex"
+# Omit model names to discover the newest available Luna and Sol locally.
+# fast_model = "gpt-6-luna"
+# strong_model = "gpt-6.1-sol"
+
+[providers.claude-personal]
+kind = "claude"
+config_dir = "~/.claude-personal"
+fast_model = "sonnet"
+strong_model = "opus"
