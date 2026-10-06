@@ -280,13 +280,44 @@ class Stdin:
         self.child = None
         self.lock = threading.Lock()
         if STREAM_INPUT:
-            self.first = sys.stdin.readline()
+            self.first = self._first_user_frame()
             threading.Thread(target=self._pump, daemon=True).start()
         else:
             self.first = sys.stdin.read()
 
+    @staticmethod
+    def _control_response(line):
+        """Acknowledge a daemon hook handshake without treating it as a task."""
+        try:
+            frame = json.loads(line)
+            request = frame.get("request") or {}
+            if frame.get("type") != "control_request":
+                return False
+            subtype = request.get("subtype")
+            response = {"subtype": "success", "request_id": frame.get("request_id"), "response": {}}
+            if subtype != "initialize":
+                response = {"subtype": "error", "request_id": frame.get("request_id"),
+                            "error": f"Unsupported control request subtype: {subtype}"}
+            emit({"type": "control_response", "response": response})
+            return True
+        except Exception:
+            return False
+
+    def _first_user_frame(self):
+        for line in sys.stdin:
+            if self._control_response(line):
+                continue
+            try:
+                if json.loads(line).get("type") == "user":
+                    return line
+            except Exception:
+                pass
+        return ""
+
     def _pump(self):
         for line in sys.stdin:
+            if self._control_response(line):
+                continue
             with self.lock:
                 c = self.child
             if c and c.stdin and not c.stdin.closed:
