@@ -14,6 +14,8 @@ CLIs already manage.
 - Remembers rate-limit/login failures and waits for the reported reset time.
 - Starts routine work on a fast model and can continue the same provider
   session on a stronger model after an `[[ESCALATE]]` hand-off.
+  Set `fast_model` equal to `strong_model` to skip the hand-off and start a
+  provider on its strong model directly.
 - Keeps Claude account profiles separate via `CLAUDE_CONFIG_DIR`.
 - Translates Codex `exec --json` events into Claude stream-json events, making
   it suitable for Claude-compatible local-agent adapters.
@@ -55,7 +57,8 @@ input_protocol = "stream-json"
 [providers.claude-work]
 kind = "claude"
 config_dir = "~/.claude-work"
-fast_model = "sonnet"
+# Equal fast/strong sends every run straight to that model, with no hand-off.
+fast_model = "opus"
 strong_model = "opus"
 
 [providers.codex]

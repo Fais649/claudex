@@ -549,6 +549,8 @@ def main():
             continue
         fast, strong = models(p)
         model, sid, note = fast, None, None
+        # No hand-off instruction when the provider already starts on its strong model.
+        leg_prompt = base_prompt if fast != strong else extra_prompt
         # Continue an earlier session where possible.
         src = interrupted or ((prev_provider, resume) if prev_provider else None)
         if src:
@@ -569,14 +571,14 @@ def main():
                 first = user_line("Your previous turn was cut off by a usage limit on another account. Continue the task.")
             elif note:
                 first = user_line(note + "\n\n" + task_text)
-            r = run_claude(p, model, stdin, first, passthrough, sid, base_prompt)
+            r = run_claude(p, model, stdin, first, passthrough, sid, leg_prompt)
         else:
             brief = ""
             if os.path.exists("CLAUDE.md") and not sid:
                 with open("CLAUDE.md") as f:
                     brief = "Task brief (CLAUDE.md):\n" + f.read() + "\n\n"
             text = task_text if not (interrupted and sid) else "Continue the task."
-            prefix = "" if sid else ESCALATION_PROMPT + "\n\n"
+            prefix = "" if (sid or fast == strong) else ESCALATION_PROMPT + "\n\n"
             r = run_codex(p, model, prefix + brief + ((note + "\n\n") if note else "") + text, sid)
 
         if r.failure:
@@ -586,12 +588,12 @@ def main():
             continue
 
         remember_session(r.session, p, model)
-        reason = escalation_reason(r.text) if model == fast else None
+        reason = escalation_reason(r.text) if (model == fast and fast != strong) else None
         if reason and not r.result.get("is_error"):
             log(f"escalating {p['name']} from {fast} to {strong}: {reason}")
             takeover = TAKEOVER_PROMPT.format(reason=reason)
             if p["kind"] == "claude":
-                r2 = run_claude(p, strong, stdin, user_line(takeover), passthrough, r.session, base_prompt)
+                r2 = run_claude(p, strong, stdin, user_line(takeover), passthrough, r.session, leg_prompt)
             else:
                 r2 = run_codex(p, strong, takeover, r.session)
             if r2.failure:

@@ -16,7 +16,8 @@ input_protocol = "stream-json"
 [providers.claude-work]
 kind = "claude"
 config_dir = "~/.claude-work"
-fast_model = "sonnet"
+# Equal fast/strong sends every run straight to that model, with no hand-off.
+fast_model = "opus"
 strong_model = "opus"
 
 [providers.codex]
